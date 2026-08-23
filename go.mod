@@ -10,7 +10,9 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/labstack/echo-contrib v0.50.1 // indirect
+	github.com/labstack/echo-prometheus v0.0.1 // indirect
 	github.com/labstack/echo/v4 v4.15.4 // indirect
+	github.com/labstack/echo/v5 v5.3.1 // indirect
 	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect

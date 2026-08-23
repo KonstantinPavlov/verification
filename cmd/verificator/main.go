@@ -14,7 +14,7 @@ import (
 	"github.com/KonstantinPavlov/verification/internal/core"
 	"github.com/KonstantinPavlov/verification/internal/http_server"
 	"github.com/KonstantinPavlov/verification/internal/logger"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type AppConfig struct {
@@ -47,11 +47,11 @@ func main() {
 			return
 		}
 		if container.GetResources().Logger != nil {
-			container.GetResources().Logger.Error("Critical failure starting app", "err", err)
-			panic(err)
+			container.GetResources().Logger.Error("Critical failure starting app", "err", err)			
 		} else {
 			log.Fatalf("Critical failure starting app: %v", err)
 		}
+		panic(err)
 	}
 }
 
@@ -73,7 +73,7 @@ func setUpAppConfig(c core.Container[AppResources]) core.StopFn {
 
 func setUpHttpServer(c core.Container[AppResources]) core.StopFn {
 	var AppRoutes http_server.Router = func(e *echo.Echo) {
-		e.GET("/", func(e echo.Context) error {
+		e.GET("/", func(e *echo.Context) error {
 			c.GetResources().Logger.Info("Hello from cutom route!")
 			return e.String(http.StatusOK, "Hello from custom route")
 		})
@@ -85,7 +85,7 @@ func setUpHttpServer(c core.Container[AppResources]) core.StopFn {
 	c.GetResources().HttpServer = http_server.NewHttpServer(serverOpts)
 
 	go func() {
-		if err := c.GetResources().HttpServer.Start(); err != nil {
+		if err := c.GetResources().HttpServer.Start(c.GetContext()); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
 				c.GetResources().Logger.Error("Start of http server failed!", "err", err)
 				c.Stop(err)

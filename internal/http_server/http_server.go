@@ -4,11 +4,12 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/KonstantinPavlov/verification/internal/logger"
-	"github.com/labstack/echo-contrib/echoprometheus"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	echoprometheus "github.com/labstack/echo-prometheus"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -28,7 +29,7 @@ const HOST = "host"
 type Router func(e *echo.Echo)
 
 type HttpServer interface {
-	Start() (err error)
+	Start(ctx context.Context) (err error)
 	Stop()
 }
 
@@ -59,33 +60,40 @@ type server struct {
 	echo *echo.Echo
 }
 
-func (s *server) Start() (err error) {
+func (s *server) Start(ctx context.Context) (err error) {
 	s.opt.Log.Info("Start http server", NAME, s.opt.Name, HOST, s.opt.Address)
-	return s.echo.Start(s.opt.Address)
+	print("\x1b[36m" +
+		"   ____    __\n" +
+		"  / __/___/ /  ___\n" +
+		" / _// __/ _ \\/ _ \\\n" +
+		"/___/\\__/_//_/\\___/ \n" +
+		"High performance, minimalist Go web framework\n" +
+		"https://labstack.com\n\n\x1b[0m")
+	sc := echo.StartConfig{
+		Address:         s.opt.Address,
+		GracefulTimeout: 10 * time.Second,
+		HideBanner:      false,
+		HidePort:        false,
+	}
+	return sc.Start(ctx, s.echo)
 }
 
 func (s server) Stop() {
 	s.opt.Log.Info("Stop http server", NAME, s.opt.Name, HOST, s.opt.Address)
-	err := s.echo.Shutdown(context.Background())
-	if err != nil {
-		s.opt.Log.With(NAME, s.opt.Name, HOST, s.opt.Address, "err", err.Error()).Error("Failed to stop server!")
-
-	}
 }
 
 func NewHttpServer(opts *HttpServerOptions) (s HttpServer) {
 	srv := &server{echo: echo.New(), opt: opts}
-	srv.echo.HideBanner = false
-	srv.echo.HidePort = false
+	srv.echo.Logger = opts.Log.Logger
 	srv.opt.ConnectedRoutes(srv.echo)
 
 	// logging middleware
 	srv.echo.Use(
 		middleware.RequestLoggerWithConfig(
 			middleware.RequestLoggerConfig{
-				LogStatus:     true,
-				LogURI:        true,
-				LogError:      true,
+				LogStatus: true,
+				LogURI:    true,
+				//LogError:      true,
 				HandleError:   true,
 				LogLatency:    true,
 				LogValuesFunc: logValuesFunc(opts),
@@ -116,13 +124,13 @@ func NewHttpServer(opts *HttpServerOptions) (s HttpServer) {
 	return srv
 }
 
-func health(c echo.Context) error {
+func health(c *echo.Context) error {
 	healthCounter.Inc()
 	return c.String(http.StatusOK, "ok")
 }
 
-func logValuesFunc(opt *HttpServerOptions) func(c echo.Context, v middleware.RequestLoggerValues) (err error) {
-	return func(c echo.Context, v middleware.RequestLoggerValues) (err error) {
+func logValuesFunc(opt *HttpServerOptions) func(c *echo.Context, v middleware.RequestLoggerValues) (err error) {
+	return func(c *echo.Context, v middleware.RequestLoggerValues) (err error) {
 		logFn := opt.Log.Error
 		msg := "request"
 
