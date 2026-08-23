@@ -46,7 +46,12 @@ func main() {
 			}
 			return
 		}
-		log.Fatalf("Critical failure starting app: %v", err)
+		if container.GetResources().Logger != nil {
+			container.GetResources().Logger.Error("Critical failure starting app", "err", err)
+			panic(err)
+		} else {
+			log.Fatalf("Critical failure starting app: %v", err)
+		}
 	}
 }
 
