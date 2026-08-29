@@ -74,8 +74,8 @@ func setUpAppConfig(c core.Container[AppResources]) core.StopFn {
 func setUpHttpServer(c core.Container[AppResources]) core.StopFn {
 	var AppRoutes http_server.Router = func(e *echo.Echo) {
 		e.GET("/", func(e *echo.Context) error {
-			c.GetResources().Logger.Info("Hello from cutom route!")
-			return e.String(http.StatusOK, "Hello from custom route")
+			c.GetResources().Logger.Info("Hello from verificator!")
+			return e.String(http.StatusOK, "Hello from verificator")
 		})
 	}
 
