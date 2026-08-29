@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/KonstantinPavlov/verification/internal/logger"
+	"github.com/KonstantinPavlov/verification/internal/logger/utils"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
@@ -142,15 +143,16 @@ func TestLogValuesFunc(t *testing.T) {
 
 // Тестируем запуск и остановку сервера через интерфейс HttpServer в стиле Echo v5
 func TestServer_StartAndStop(t *testing.T) {
-	logBuf := new(bytes.Buffer)
+	// Используем наш безопасный буфер вместо стандартного new(bytes.Buffer)
+	logBuf := new(utils.SafeBuffer)
 	
-	// Используем стандартный TextHandler, чтобы не зависеть от скрытой реализации билдера
+	// Передаем logBuf. Он прозрачно реализует интерфейс io.Writer благодаря методу Write()
 	stdHandler := slog.NewTextHandler(logBuf, &slog.HandlerOptions{Level: slog.LevelInfo})
 	customLogger := &logger.Logger{Logger: slog.New(stdHandler)}
 
 	opts := &HttpServerOptions{
 		Name:    "lifecycle_server",
-		Address: "127.0.0.1:9092", // Используем конкретный порт во избежание конфликтов
+		Address: "127.0.0.1:9092",
 		ConnectedRoutes: func(e *echo.Echo) {
 			e.GET("/test", func(c *echo.Context) error { return c.String(200, "live") })
 		},
@@ -161,31 +163,26 @@ func TestServer_StartAndStop(t *testing.T) {
 
 	s := NewHttpServer(opts)
 
-	// Создаем контекст управления жизненным циклом (управление "рубильником" сервера)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Запускаем сервер в горутине и передаем ему контекст
 	go func() {
 		_ = s.Start(ctx)
 	}()
 
-	// Даем Echo микросекунды на биндинг порта
 	time.Sleep(50 * time.Millisecond)
 
-	// Проверяем, что в логи ушло сообщение о старте
+	// Теперь вызов logBuf.String() полностью безопасен, так как заблокирует мьютекс
 	if !strings.Contains(logBuf.String(), "Start http server") {
 		t.Errorf("Expected 'Start http server' log message, got: %q", logBuf.String())
 	}
 
-	// Имитируем вызов метода Stop()
 	s.Stop()
 	
-	// Останавливаем сам http-сервер Echo v5 через отмену контекста
 	cancel()
 	time.Sleep(50 * time.Millisecond)
 
-	// Проверяем, что в логи ушло сообщение об остановке из метода Stop()
+	// Повторное безопасное чтение логов
 	if !strings.Contains(logBuf.String(), "Stop http server") {
 		t.Errorf("Expected 'Stop http server' log message, got: %q", logBuf.String())
 	}
