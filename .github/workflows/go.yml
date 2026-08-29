@@ -25,10 +25,10 @@ jobs:
     - name: Build project
       run: go build -v ./...
 
-    - name: Run tests
+    - name: Run tests for internal packages
       run: go test -v ./internal/...
 
-    - name: Run internal tests with coverage
+    - name: Run tests with race and coverage of internal packages
       run: go test -v -race -coverprofile=coverage.out ./internal/...
 
     - name: Check total coverage percentage

@@ -256,7 +256,7 @@ func (p *producer) ProduceBatch(msgs []*kafka.Message) (err error) {
 			return err
 		}
 	}
-	p.log.Info("Async bathc produc completed", "count", len(msgs))
+	p.log.Info("Async batch produce completed", "count", len(msgs))
 	return nil
 }
 
