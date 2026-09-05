@@ -1,0 +1,38 @@
+name: Go Check
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26.x'
+
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Build project
+      run: go build -v ./...
+
+    - name: Run tests for internal packages
+      run: go test -v ./internal/...
+
+    - name: Run tests with race and coverage of internal packages
+      run: go test -v -race -coverprofile=coverage.out ./internal/...
+
+    - name: Check total coverage percentage
+      run: |            
+        TOTAL_COVERAGE=$(go tool cover -func=coverage.out | grep total | grep -oE '[0-9]+(\.[0-9]+)?')
+        echo "Total code coverage is: $TOTAL_COVERAGE%"    
+        awk -v cov="$TOTAL_COVERAGE" -v min="60.0" 'BEGIN { if (cov < min) { print "Error: Coverage is " cov "%, which is below the required " min "%!"; exit 1 } else { print "Success: Coverage requirement met." } }'
